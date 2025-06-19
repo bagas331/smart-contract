@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-gray-100">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YouTube Smart Contract UI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="flex items-center justify-center min-h-screen">
+    <div class="bg-white shadow-2xl rounded-2xl p-8 w-full max-w-xl space-y-8">
+      <h1 id="welcome" class="text-3xl font-bold text-center text-gray-800">
+        👋 Hello,
+      </h1>
+
+      <div class="space-y-3 text-sm text-gray-700">
+        <div class="flex justify-between">
+          <span class="font-medium">📛 Pemilik:</span>
+          <span id="pemilik" class="text-gray-600">-</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="font-medium">📄 Raw Text:</span>
+          <span id="rawText" class="text-gray-600 text-right break-all">-</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="font-medium">🔢 Angka:</span>
+          <span id="angka" class="text-gray-600">0</span>
+        </div>
+      </div>
+
+      <div class="flex gap-2">
+        <input
+          id="textRaw"
+          type="text"
+          placeholder="Masukkan Text"
+          class="flex-grow px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+        />
+        <button
+          onclick="setText()"
+          class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition"
+        >
+          Set
+        </button>
+      </div>
+
+      <div class="flex justify-center gap-4">
+        <button
+          onclick="loadData()"
+          class="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium transition"
+        >
+          🔄 Load Data
+        </button>
+        <button
+          onclick="inc()"
+          class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition"
+        >
+          ➕ Increment
+        </button>
+      </div>
+
+      <div id="wallet" class="text-center">
+        <button
+          onclick="connect()"
+          class="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-full font-medium shadow transition"
+        >
+          🔌 Connect Wallet
+        </button>
+      </div>
+    </div>
+
+    <!-- Ethers.js -->
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    <!-- ABI -->
+    <script src="abi.js"></script>
+
+    <script>
+      let provider, account, ytContract, signer;
+      async function connect() {
+        if (!window.ethereum) {
+          alert("Metamask tidak ditemukan.");
+          return;
+        }
+
+        await ethereum.request({ method: "eth_requestAccounts" });
+        provider = new ethers.providers.Web3Provider(window.ethereum); // ✅ Hapus 'const'
+
+        signer = provider.getSigner(); // sudah Promise-aware
+        account = await signer.getAddress();
+
+        console.log("ini signer", signer);
+        console.log(account);
+
+        document.getElementById("welcome").innerText += " " + account;
+        document.getElementById("wallet").classList.add("invisible");
+
+        // ✅ Ganti alamat sesuai hasil deploy kamu
+        const contractAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+
+        ytContract = new ethers.Contract(contractAddress, abi, provider);
+        console.log(ytContract);
+        await loadData();
+      }
+
+      async function loadData() {
+        if (!ytContract) {
+          alert("Kontrak belum terhubung.");
+          return;
+        }
+
+        document.getElementById("pemilik").innerText =
+          await ytContract.getPemilik();
+        document.getElementById("rawText").innerText =
+          await ytContract.textRaw();
+        document.getElementById("angka").innerText = await ytContract.angka();
+      }
+
+      async function setText() {
+        if (!ytContract || !provider) {
+          alert("⚠️ Silakan klik 'Connect Wallet' terlebih dahulu.");
+          return;
+        }
+
+        const textValue = document.getElementById("textRaw").value;
+
+        const yt = ytContract.connect(await provider.getSigner());
+        await yt.setText(textValue);
+        await loadData();
+      }
+
+      async function inc() {
+        if (!ytContract || !provider) {
+          alert("⚠️ Silakan klik 'Connect Wallet' terlebih dahulu.");
+          return;
+        }
+
+        const yt = ytContract.connect(await provider.getSigner());
+        await yt.inc();
+        await loadData();
+      }
+
+      // Auto connect saat reload (opsional)
+      window.addEventListener("load", async () => {
+        if (window.ethereum && ethereum.selectedAddress) {
+          await connect();
+        }
+      });
+    </script>
+  </body>
+</html>
