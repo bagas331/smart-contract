@@ -12,4 +12,4 @@ npx hardhat run scripts/get.js --network localhost
 
 npx hardhat run scripts/set.js --network localhost
 
-npc serve .
+npx serve .
